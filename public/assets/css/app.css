@@ -1,0 +1,723 @@
+/* ==========================================================================
+   Pitch Innovations — Affiliate Coupon Dashboard
+   --------------------------------------------------------------------------
+   Spec section 10: "a clean interface; money figures easy to scan; a clear
+   'live' indicator while a sale is running... The styling should strictly
+   follow our brand."
+
+   Brand values are taken from pitchinnovations.com and from the logo itself:
+     Inter throughout, near-black ink on white, the site's blue for actions,
+     and the five logo colours used only as accents.
+
+   The wordmark in the logo is white, so it sits on the dark header rather
+   than on the page background.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    /* Ink and surfaces — from the site */
+    --ink:            #18191F;
+    --ink-body:       #212529;
+    --ink-muted:      #6B7280;
+    --ink-faint:      #9CA3AF;
+
+    --surface:        #FFFFFF;
+    --surface-sunken: #F8F9FA;
+    --surface-raised: #FFFFFF;
+
+    --rule:           #D9DBE1;
+    --rule-soft:      #EDEFF3;
+
+    /* Action blue — the site's Sign Up button */
+    --accent:         #0C5CFF;
+    --accent-hover:   #3678FD;
+    --accent-soft:    #EEF3FF;
+
+    /* The five logo colours. Accents only — never large fills. */
+    --logo-magenta:   #E3097E;
+    --logo-orange:    #F19001;
+    --logo-blue:      #2D66AE;
+    --logo-cyan:      #03B6CF;
+    --logo-green:     #6EB42C;
+
+    /* Semantic */
+    --live:           #6EB42C;
+    --live-glow:      rgba(110, 180, 44, 0.28);
+    --warn:           #F19001;
+    --danger:         #E3097E;
+
+    --radius-sm:      8px;
+    --radius:         10px;
+    --radius-lg:      14px;
+    --radius-xl:      18px;
+
+    --shadow-sm:      0 1px 2px rgba(24, 25, 31, 0.05);
+    --shadow:         0 2px 8px rgba(24, 25, 31, 0.06);
+    --shadow-lg:      0 12px 32px rgba(24, 25, 31, 0.10);
+
+    --header-h:       64px;
+    --max-w:          1240px;
+}
+
+/* --- Reset ------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    margin: 0;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink-body);
+    background: var(--surface-sunken);
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { margin: 0; color: var(--ink); font-weight: 600; line-height: 1.25; }
+h1 { font-size: 26px; letter-spacing: -0.02em; }
+h2 { font-size: 19px; letter-spacing: -0.01em; }
+h3 { font-size: 15px; }
+
+p { margin: 0 0 12px; }
+p:last-child { margin-bottom: 0; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+/* Money and other figures line up in columns only if the digits do. */
+.tabular { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+
+/* --- Layout ------------------------------------------------------------ */
+
+.shell { min-height: 100vh; display: flex; flex-direction: column; }
+
+.wrap {
+    width: 100%;
+    max-width: var(--max-w);
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+main.page { flex: 1; padding: 28px 0 72px; }
+
+/* --- Header ------------------------------------------------------------ */
+
+.masthead {
+    background: var(--ink);
+    color: #fff;
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+.masthead .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.masthead__logo { display: flex; align-items: center; gap: 12px; }
+.masthead__logo img { height: 26px; width: auto; display: block; }
+
+.masthead__label {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.55);
+    padding-left: 12px;
+    border-left: 1px solid rgba(255, 255, 255, 0.18);
+    letter-spacing: 0.01em;
+}
+
+.masthead__right { display: flex; align-items: center; gap: 8px; }
+
+.masthead__who {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.72);
+    margin-right: 6px;
+}
+
+.masthead a.ghost, .masthead button.ghost {
+    color: rgba(255, 255, 255, 0.82);
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--radius);
+    padding: 7px 13px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.masthead a.ghost:hover, .masthead button.ghost:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.32);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* --- Cards ------------------------------------------------------------- */
+
+.card {
+    background: var(--surface-raised);
+    border: 1px solid var(--rule-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.card__head {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--rule-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.card__body { padding: 22px; }
+.card__body--flush { padding: 0; }
+
+/* --- Sale picker (spec 5.1) -------------------------------------------- */
+
+.sale-picker {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 0 12px;
+    scrollbar-width: thin;
+}
+
+.sale-tab {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 11px 16px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    color: var(--ink-body);
+    text-decoration: none;
+    min-width: 176px;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.sale-tab:hover {
+    text-decoration: none;
+    border-color: var(--ink-faint);
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+}
+
+.sale-tab[aria-current='page'] {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 1px var(--ink);
+}
+
+.sale-tab__name { font-weight: 600; font-size: 14px; color: var(--ink); }
+.sale-tab__meta { font-size: 12px; color: var(--ink-muted); display: flex; align-items: center; gap: 6px; }
+
+/* --- Live indicator ---------------------------------------------------- */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.badge--live      { background: rgba(110, 180, 44, 0.12); color: #4C7F1E; }
+.badge--ended     { background: var(--surface-sunken);    color: var(--ink-muted); border: 1px solid var(--rule); }
+.badge--paid      { background: rgba(45, 102, 174, 0.10); color: var(--logo-blue); }
+.badge--invoiced  { background: rgba(3, 182, 207, 0.12);  color: #067C8D; }
+.badge--awaiting  { background: rgba(241, 144, 1, 0.12);  color: #A66300; }
+.badge--refunded  { background: rgba(227, 9, 126, 0.10);  color: var(--logo-magenta); }
+
+.pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--live);
+    box-shadow: 0 0 0 0 var(--live-glow);
+    animation: pulse 2s infinite;
+    flex: 0 0 auto;
+}
+
+@keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 var(--live-glow); }
+    70%  { box-shadow: 0 0 0 7px rgba(110, 180, 44, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(110, 180, 44, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pulse { animation: none; }
+    * { transition-duration: 0.01ms !important; }
+}
+
+/* --- Encouragement banner (spec section 1) ----------------------------- */
+
+.nudge {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 20px 16px 22px;
+    background: linear-gradient(90deg, rgba(3, 182, 207, 0.06), rgba(110, 180, 44, 0.05) 45%, rgba(255, 255, 255, 0) 90%);
+    border: 1px solid var(--rule-soft);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+/* The logo's five colours, as a stripe down the edge. */
+.nudge::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(
+        180deg,
+        var(--logo-cyan) 0%,
+        var(--logo-blue) 25%,
+        var(--logo-green) 50%,
+        var(--logo-orange) 75%,
+        var(--logo-magenta) 100%
+    );
+}
+
+.nudge__icon { font-size: 18px; line-height: 1.4; flex: 0 0 auto; }
+.nudge__text { font-size: 14.5px; color: var(--ink); font-weight: 500; }
+.nudge__milestone { display: block; margin-top: 3px; font-size: 13px; font-weight: 400; color: var(--ink-muted); }
+
+/* --- Payout headline --------------------------------------------------- */
+
+.headline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 24px 26px;
+    border-bottom: 1px solid var(--rule-soft);
+}
+
+.headline__label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 6px;
+}
+
+.headline__value {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    line-height: 1.05;
+}
+
+.headline__note { font-size: 13px; color: var(--ink-muted); margin-top: 6px; }
+
+.headline__stats { display: flex; gap: 28px; }
+.headline__stat-label { font-size: 12px; color: var(--ink-muted); margin-bottom: 2px; }
+.headline__stat-value { font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+
+/* --- Summary rows (spec 5.2) ------------------------------------------- */
+
+.summary { width: 100%; border-collapse: collapse; }
+
+.summary td {
+    padding: 11px 26px;
+    border-bottom: 1px solid var(--rule-soft);
+    font-size: 14px;
+}
+
+.summary tr:last-child td { border-bottom: none; }
+.summary td:last-child { text-align: right; font-weight: 500; white-space: nowrap; }
+
+.summary tr.is-muted td { color: var(--ink-muted); }
+
+.summary tr.is-total td {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--surface-sunken);
+    border-top: 1px solid var(--rule);
+}
+
+/* --- Orders table (spec 5.3) ------------------------------------------- */
+
+.table-scroll { overflow-x: auto; }
+
+table.orders {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    min-width: 900px;
+}
+
+table.orders thead th {
+    position: sticky;
+    top: var(--header-h);
+    background: var(--surface-sunken);
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+    z-index: 5;
+}
+
+table.orders tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--rule-soft);
+    color: var(--ink-body);
+    white-space: nowrap;
+}
+
+table.orders tbody tr:hover td { background: var(--surface-sunken); }
+table.orders tbody tr:last-child td { border-bottom: none; }
+
+table.orders .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.orders .muted { color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+table.orders .code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--rule-soft);
+    border-radius: 5px;
+    padding: 2px 7px;
+}
+
+table.orders tr.is-refunded td { color: var(--ink-faint); }
+table.orders tr.is-refunded .plugin { text-decoration: line-through; }
+
+/* A row that arrived during a poll gets a brief highlight so the creator
+   sees the sale land rather than just noticing a number changed. */
+@keyframes flash-in {
+    0%   { background: rgba(110, 180, 44, 0.20); }
+    100% { background: transparent; }
+}
+
+table.orders tr.is-new td { animation: flash-in 2.4s ease-out; }
+
+/* --- Buttons ----------------------------------------------------------- */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+    white-space: nowrap;
+}
+
+.btn:hover { text-decoration: none; }
+
+.btn--primary { background: var(--accent); color: #fff; }
+.btn--primary:hover { background: var(--accent-hover); color: #fff; }
+
+.btn--dark { background: var(--ink); color: #fff; }
+.btn--dark:hover { background: #2C2E38; color: #fff; }
+
+.btn--outline { background: var(--surface); color: var(--ink); border-color: var(--rule); }
+.btn--outline:hover { border-color: var(--ink-faint); background: var(--surface-sunken); color: var(--ink); }
+
+.btn--block { width: 100%; }
+.btn--sm { padding: 7px 13px; font-size: 13px; }
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* --- Forms ------------------------------------------------------------- */
+
+.field { margin-bottom: 16px; }
+
+.field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 6px;
+}
+
+.field .hint { font-size: 12.5px; color: var(--ink-muted); margin-top: 6px; }
+
+.input {
+    width: 100%;
+    padding: 11px 13px;
+    font: inherit;
+    font-size: 14.5px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.input:disabled { background: var(--surface-sunken); color: var(--ink-muted); cursor: not-allowed; }
+
+select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236B7280' d='M1.4 0 6 4.6 10.6 0 12 1.4 6 7.4 0 1.4z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 36px; }
+
+/* The one-time code input — spaced out so six digits are easy to check. */
+.input--code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: 0.36em;
+    text-align: center;
+    padding: 14px 13px 14px 24px;
+}
+
+.switch-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule-soft);
+}
+
+.switch-row:last-of-type { border-bottom: none; }
+.switch-row input[type='checkbox'] { width: 17px; height: 17px; margin-top: 2px; accent-color: var(--accent); flex: 0 0 auto; cursor: pointer; }
+.switch-row__label { font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; }
+.switch-row__hint { font-size: 12.5px; color: var(--ink-muted); margin-top: 2px; }
+
+.switch-row--master {
+    background: var(--surface-sunken);
+    border: 1px solid var(--rule-soft);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+}
+
+/* --- Alerts ------------------------------------------------------------ */
+
+.alert {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    margin-bottom: 18px;
+    border: 1px solid transparent;
+}
+
+.alert--ok    { background: rgba(110, 180, 44, 0.09); border-color: rgba(110, 180, 44, 0.28); color: #3F6B18; }
+.alert--error { background: rgba(227, 9, 126, 0.06);  border-color: rgba(227, 9, 126, 0.26);  color: #A80A5E; }
+.alert--info  { background: var(--accent-soft);       border-color: rgba(12, 92, 255, 0.20);  color: #0A47C2; }
+
+.alert ul { margin: 6px 0 0; padding-left: 18px; }
+
+/* --- Auth pages -------------------------------------------------------- */
+
+.auth {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background:
+        radial-gradient(900px 400px at 50% -10%, rgba(3, 182, 207, 0.07), transparent 70%),
+        var(--surface-sunken);
+}
+
+.auth__logo {
+    background: var(--ink);
+    padding: 14px 22px;
+    border-radius: var(--radius);
+    margin-bottom: 26px;
+}
+
+.auth__logo img { height: 26px; width: auto; display: block; }
+
+.auth__card {
+    width: 100%;
+    max-width: 408px;
+    background: var(--surface);
+    border: 1px solid var(--rule-soft);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    padding: 30px;
+}
+
+.auth__title { font-size: 21px; margin-bottom: 6px; }
+.auth__sub { font-size: 14px; color: var(--ink-muted); margin-bottom: 22px; }
+.auth__foot { margin-top: 20px; font-size: 13px; color: var(--ink-muted); text-align: center; }
+
+/* Four dots showing where the creator is in the sign-in (spec section 3). */
+.steps { display: flex; align-items: center; gap: 7px; margin-bottom: 20px; }
+
+.steps__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--rule);
+    transition: background 0.2s, transform 0.2s;
+}
+
+.steps__dot.is-done { background: var(--logo-green); }
+.steps__dot.is-current { background: var(--ink); transform: scale(1.32); }
+.steps__label { margin-left: 8px; font-size: 12px; color: var(--ink-muted); font-weight: 500; }
+
+/* --- Settlement panel (spec 5.7) --------------------------------------- */
+
+.settle { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 18px; }
+
+.settle__box {
+    border: 1px solid var(--rule-soft);
+    border-radius: var(--radius);
+    padding: 18px;
+    background: var(--surface);
+}
+
+.settle__box h3 { margin-bottom: 6px; }
+.settle__box p { font-size: 13px; color: var(--ink-muted); margin-bottom: 14px; }
+
+.settle__box--locked { background: var(--surface-sunken); }
+
+.file-drop {
+    display: block;
+    border: 1.5px dashed var(--rule);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 12px;
+}
+
+.file-drop:hover { border-color: var(--accent); background: var(--accent-soft); }
+.file-drop.has-file { border-style: solid; border-color: var(--logo-green); background: rgba(110, 180, 44, 0.06); color: var(--ink); }
+
+/* --- Live status line -------------------------------------------------- */
+
+.livebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+}
+
+.livebar__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--live); }
+.livebar.is-stale .livebar__dot { background: var(--warn); }
+.livebar.is-offline .livebar__dot { background: var(--ink-faint); }
+
+/* --- Pagination -------------------------------------------------------- */
+
+.pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 22px;
+    border-top: 1px solid var(--rule-soft);
+    font-size: 13px;
+    color: var(--ink-muted);
+    flex-wrap: wrap;
+}
+
+.pager__links { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.pager__links a, .pager__links span {
+    padding: 6px 11px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-sm);
+    color: var(--ink-body);
+    text-decoration: none;
+    font-size: 13px;
+    background: var(--surface);
+}
+
+.pager__links a:hover { border-color: var(--ink-faint); text-decoration: none; }
+.pager__links .is-current { background: var(--ink); border-color: var(--ink); color: #fff; }
+.pager__links .is-disabled { opacity: 0.4; }
+
+/* --- Empty state ------------------------------------------------------- */
+
+.empty { text-align: center; padding: 72px 24px; }
+.empty h1 { margin-bottom: 10px; }
+.empty p { color: var(--ink-muted); max-width: 460px; margin: 0 auto 8px; }
+
+/* --- Utilities --------------------------------------------------------- */
+
+.stack > * + * { margin-top: 20px; }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.row--end { justify-content: flex-end; }
+.muted { color: var(--ink-muted); }
+.small { font-size: 12.5px; }
+.mt-0 { margin-top: 0; }
+.mb-0 { margin-bottom: 0; }
+.grow { flex: 1; }
+
+.section-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin: 0 0 10px;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* --- Responsive -------------------------------------------------------- */
+
+@media (max-width: 760px) {
+    .wrap { padding: 0 16px; }
+    .headline { padding: 20px; }
+    .headline__value { font-size: 32px; }
+    .headline__stats { gap: 20px; }
+    .summary td { padding: 10px 20px; }
+    .masthead__label, .masthead__who { display: none; }
+    h1 { font-size: 22px; }
+    table.orders thead th { position: static; }
+}
