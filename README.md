@@ -181,8 +181,22 @@ cannot be skipped and whose emailed code cannot be brute-forced.
 
 ## Status
 
-Every file here was written without a PHP runtime available on the development
-machine, so **the code has not yet been executed, and the test suite has not been
-run.** Expect to shake out the usual first-run issues. Start with
-`composer install && php artisan migrate --seed && php artisan test` — the test
-suite is the fastest way to find anything that needs correcting.
+Verified end to end against PHP 8.4 / Laravel 12 on SQLite:
+
+- `composer install`, `migrate --seed` and `php artisan test` all run clean —
+  **39 tests, 134 assertions passing.**
+- Signed in through all four steps, including reading the emailed one-time code,
+  and landed on the live sale.
+- Confirmed live updating: an order inserted while the dashboard sat open
+  appeared at the top of the table on its own, with units, gross and payout all
+  moving and no page refresh.
+- Downloaded the Excel report and confirmed it is a valid `.xlsx` carrying the
+  locked summary figures and the masked orders list.
+- Uploaded an invoice, recorded the payment as an admin, and confirmed the
+  status flipped to Paid and the confirmation email rendered and sent.
+- Ran all three scheduled commands (`sales:close-ended`,
+  `affiliates:send-digests`, `affiliates:send-weekly-summaries`) successfully.
+
+It has **not** been run against MySQL yet — the schema is plain enough that it
+should be uneventful, but that is the one environment difference worth checking
+before you deploy.

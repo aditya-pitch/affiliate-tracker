@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -93,7 +94,7 @@ class LoginController extends Controller
          */
         $passwordMatches = $user
             ? Hash::check($validated['password'], $user->password)
-            : Hash::check($validated['password'], '$2y$12$usesomesillystringfore7hnbRJHxXVLeakoG8K30oukPsA.ma');
+            : Hash::check($validated['password'], $this->dummyHash());
 
         if (! $passwordMatches || ! $user || ! $user->is_active) {
             RateLimiter::hit($this->throttleKey($request, 'password'));
@@ -285,6 +286,21 @@ class LoginController extends Controller
 
         return redirect()->route('login')
             ->withErrors(['email' => 'Your sign-in timed out. Please start again.']);
+    }
+
+    /**
+     * A throwaway hash to compare against when the email has no account.
+     *
+     * Generated through the configured hasher rather than hard-coded, so it
+     * always costs exactly what a real password check costs -- a literal
+     * pinned at some other cost factor would leave the timing difference this
+     * is here to remove. Computed at most once per process.
+     */
+    private function dummyHash(): string
+    {
+        static $hash = null;
+
+        return $hash ??= Hash::make('not-a-real-password-'.Str::random(16));
     }
 
     private function assertNotRateLimited(Request $request, string $step): void
