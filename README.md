@@ -5,51 +5,154 @@ track the sales driven by their personal coupon codes — and the commission the
 earn — in real time, through to getting paid.
 
 Built to the functional specification in `Affiliate-Dashboard-Spec.docx`.
-PHP 8.2+ / Laravel 12 / MySQL.
+PHP 8.2+ / Laravel 12 / MySQL (SQLite works for local testing).
+
+**Just want to try it?** Jump to [Quick start](#quick-start--running-it-locally-to-try-it-out) —
+no database server needed, about ten minutes from a fresh clone.
 
 ---
 
-## Getting it running
+## Quick start — running it locally to try it out
 
-The machine this was written on had no PHP, Composer or Node, so nothing here
-has been executed yet — see [Status](#status) below. These are the steps to
-bring it up.
+No database server needed. This path uses SQLite, which is a single file, and
+takes about ten minutes from a fresh clone.
 
-**1. Install dependencies**
+**1. Install PHP 8.2 or newer**
+
+- **Windows** — the simplest route is [Laragon](https://laragon.org/download/)
+  (bundles PHP, MySQL and a web server). Or download the PHP zip from
+  [windows.php.net](https://windows.php.net/download/), unzip it somewhere like
+  `C:\php`, add that folder to your PATH, then copy `php.ini-development` to
+  `php.ini` and uncomment these lines:
+
+  ```ini
+  extension=openssl
+  extension=mbstring
+  extension=fileinfo
+  extension=curl
+  extension=zip
+  extension=pdo_sqlite
+  extension=sqlite3
+  ```
+
+- **macOS** — `brew install php`
+- **Ubuntu/Debian** — `sudo apt install php8.3-cli php8.3-sqlite3 php8.3-mbstring php8.3-curl php8.3-zip php8.3-xml`
+
+Check it worked:
+
+```bash
+php -v
+```
+
+**2. Install Composer**
+
+From [getcomposer.org/download](https://getcomposer.org/download/), then:
+
+```bash
+composer --version
+```
+
+**3. Install the project's dependencies**
 
 ```bash
 composer install
 ```
 
-**2. Create your environment file**
+**4. Create your environment file**
 
 ```bash
-cp .env.example .env && php artisan key:generate
+cp .env.example .env
+php artisan key:generate
 ```
 
-Then set `DB_*` for your MySQL database, and `MAIL_*` for real SMTP
-credentials. Mail is not optional: sign-in one-time codes go out by email, so
-nobody can log in until mail works. For local development leave
-`MAIL_MAILER=log` and read the codes out of `storage/logs/laravel.log`.
+Open `.env` and set these three lines so it uses SQLite:
 
-**3. Create the schema and some data to look at**
+```
+DB_CONNECTION=sqlite
+DB_DATABASE=database/database.sqlite
+APP_URL=http://127.0.0.1:8000
+```
+
+Leave `MAIL_MAILER=log` — see step 7 for how to sign in without real email.
+
+**5. Create the database file**
+
+```bash
+# macOS / Linux
+touch database/database.sqlite
+
+# Windows PowerShell
+New-Item -ItemType File database/database.sqlite
+```
+
+**6. Create the schema and load demo data**
 
 ```bash
 php artisan migrate --seed
 ```
 
-The seeder creates an admin, three creators, and three sales — one running right
-now, one ended and paid, one ended and awaiting an invoice — with orders in
-seven currencies and a few refunds. It prints the sign-in details when it
-finishes.
+This creates an admin, three creators, and three sales — one running right now,
+one ended and paid, one ended and awaiting an invoice — with orders across seven
+currencies and a few refunds. It prints the sign-in details when it finishes.
 
-**4. Run it**
+**7. Run it**
 
 ```bash
 php artisan serve
 ```
 
-**5. Set up mail — do not skip this**
+Then open **http://127.0.0.1:8000**.
+
+Sign in with `aarav@example.com`, password `password`, date of birth
+`1994-03-12`. At the fourth step it asks for a code that would normally be
+emailed. Because `MAIL_MAILER=log`, it is written to the log instead — get it
+with:
+
+```bash
+php artisan affiliate:login-code aarav@example.com
+```
+
+That issues a fresh code and prints it. Do the first three steps in the browser
+first, then run this and type in what it gives you.
+
+Other logins, all with password `password`:
+
+| Account | Date of birth | Notes |
+|:--|:--|:--|
+| `aarav@example.com` | 1994-03-12 | 15%, paid in INR, has two coupon codes |
+| `ritika@example.com` | 1998-11-02 | 12.5%, paid in INR |
+| `marco@example.com` | 1991-07-25 | 20%, paid in **USD** — the overseas creator path |
+| `adityapahuja@pitchinnovations.com` | 1990-01-01 | Admin — internal screens |
+
+**Worth trying:** open Summer Sale 2026 as Aarav and leave it open — it updates
+on its own as orders arrive. Sign in as the admin to see every creator side by
+side, add a creator, and record a payment. Look at an ended sale to download the
+Excel report and upload an invoice.
+
+If anything fails, `php artisan test` is the fastest way to find out what.
+
+---
+
+## Full setup, for a real deployment
+
+The quick start above uses SQLite, which is fine for trying the app out but not
+for production. For a real install:
+
+**1. Use MySQL** — set the `DB_*` values in `.env` and run `php artisan migrate`.
+
+**2. Set up mail properly.** This is not optional: sign-in requires an emailed
+code, so if mail does not work, nobody can log in at all. See the mail section
+below.
+
+**3. Point the web server at `public/`**, never at the project root — everything
+above `public/` must not be reachable over the web.
+
+**4. Set `APP_ENV=production` and `APP_DEBUG=false`**, and run
+`php artisan config:cache route:cache view:cache`.
+
+---
+
+## Mail — the one thing that can stop everything
 
 Sign-in requires a code sent by email, so if mail does not work, **nobody can
 log in at all**. Set the `MAIL_*` values in `.env` to real SMTP credentials,
@@ -86,7 +189,9 @@ Complete the first three steps in the browser, then type in what it printed.
 Using it is recorded in the audit log. It needs shell access to the server,
 which is strictly more access than any account it could let you into.
 
-**6. Add the scheduler**
+---
+
+## The scheduler
 
 One cron entry drives closing ended sales, digests and weekly summaries:
 
