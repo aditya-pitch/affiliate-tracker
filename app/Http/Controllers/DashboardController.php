@@ -65,6 +65,11 @@ class DashboardController extends Controller
         $settlement = $this->settlementFor($user, $sale);
 
         return view('dashboard.show', [
+            // The same view serves the admin's read-only look at a creator's
+            // dashboard, so whose data is on screen is passed explicitly rather
+            // than read from auth() inside the template.
+            'creator' => $user,
+            'viewingAsAdmin' => false,
             'sale' => $sale,
             'sales' => $sales,
             'summary' => $summary,

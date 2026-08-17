@@ -259,7 +259,7 @@ class LoginController extends Controller
         ]);
 
         return redirect()->intended(
-            $user->isAdmin() ? route('admin.settlements.index') : route('dashboard')
+            $user->isAdmin() ? route('admin.overview.index') : route('dashboard')
         );
     }
 

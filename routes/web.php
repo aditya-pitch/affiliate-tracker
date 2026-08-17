@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\CreatorController;
+use App\Http\Controllers\Admin\OverviewController;
 use App\Http\Controllers\Admin\SettlementController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -83,6 +85,27 @@ Route::middleware(['auth', 'affiliate'])->group(function () {
 */
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+
+    // Overview — every creator's numbers for one sale, side by side.
+    Route::get('/', [OverviewController::class, 'index'])->name('overview.index');
+    Route::get('/sales/{sale}', [OverviewController::class, 'show'])->name('overview.show');
+    Route::get('/sales/{sale}/live', [OverviewController::class, 'live'])->name('overview.live');
+    Route::get('/sales/{sale}/overview.xlsx', [OverviewController::class, 'download'])->name('overview.download');
+
+    // Creator dashboards — who exists, and setting new ones up.
+    // `create` is declared before `{user}` so the literal wins the match.
+    Route::get('/creators', [CreatorController::class, 'index'])->name('creators.index');
+    Route::get('/creators/create', [CreatorController::class, 'create'])->name('creators.create');
+    Route::post('/creators', [CreatorController::class, 'store'])->name('creators.store');
+    Route::get('/creators/{user}', [CreatorController::class, 'show'])->name('creators.show');
+    Route::put('/creators/{user}', [CreatorController::class, 'update'])->name('creators.update');
+    Route::post('/creators/{user}/codes', [CreatorController::class, 'addCode'])->name('creators.codes.add');
+    Route::post('/creators/{user}/password', [CreatorController::class, 'resetPassword'])->name('creators.password');
+    Route::post('/creators/{user}/welcome', [CreatorController::class, 'sendWelcome'])->name('creators.welcome');
+    Route::get('/creators/{user}/sales/{sale}', [CreatorController::class, 'dashboard'])->name('creators.dashboard');
+    Route::post('/codes/{code}/toggle', [CreatorController::class, 'toggleCode'])->name('codes.toggle');
+
+    // Settlement — recording payment (spec 5.7).
     Route::get('/settlements', [SettlementController::class, 'index'])->name('settlements.index');
     Route::post('/settlements/{settlement}/pay', [SettlementController::class, 'markPaid'])->name('settlements.pay');
     Route::get('/settlements/{settlement}/invoice', [SettlementController::class, 'downloadInvoice'])->name('settlements.invoice');

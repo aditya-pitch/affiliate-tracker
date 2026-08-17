@@ -1,29 +1,33 @@
 @extends('layouts.app')
 
-@section('title', 'Settlements')
+@section('title', 'Payments')
 
 @section('content')
 
-    <h1 style="margin-bottom: 6px;">Settlements</h1>
-    <p class="muted small" style="margin-bottom: 20px;">
-        Internal. Recording a payment emails the creator a confirmation and moves the sale to Paid.
-    </p>
+    <div class="page-head">
+        <div>
+            <h1>Payments</h1>
+            <p>
+                Recording a payment emails the creator a confirmation and moves the sale to Paid.
+            </p>
+        </div>
+    </div>
 
-    {{-- Sales past their end date that have not been closed out yet. Normally
-         the scheduler handles this within the minute; this is the manual
-         fallback for when it has not run. --}}
+    {{-- Sales past their end date that the scheduler has not closed out yet. --}}
     @if ($salesAwaitingClose->isNotEmpty())
         <div class="alert alert--info">
             <strong>{{ $salesAwaitingClose->count() }}</strong>
             {{ Str::plural('sale', $salesAwaitingClose->count()) }}
-            past the end date and not yet closed out:
+            past the end date and not yet closed out. Closing finalises every creator’s report and
+            emails them.
             <ul>
                 @foreach ($salesAwaitingClose as $sale)
-                    <li style="margin-bottom: 6px;">
+                    <li style="margin-bottom: 8px;">
                         {{ $sale->name }} — ended {{ $sale->ends_at->format('j M Y, H:i') }}
-                        <form method="POST" action="{{ route('admin.sales.close', $sale) }}" style="display: inline;">
+                        <form method="POST" action="{{ route('admin.sales.close', $sale) }}"
+                              style="display: inline-block; margin-left: 8px;">
                             @csrf
-                            <button type="submit" class="btn btn--outline btn--sm" style="margin-left: 8px;">
+                            <button type="submit" class="btn btn--outline btn--sm">
                                 Close out &amp; email creators
                             </button>
                         </form>
@@ -49,78 +53,102 @@
                 </div>
             @else
                 <div class="table-scroll">
-                    <table class="orders">
+                    <table class="data">
                         <thead>
                         <tr>
                             <th>Creator</th>
                             <th>Sale</th>
                             <th class="num">Units</th>
-                            <th class="num">Payout</th>
-                            <th>Rate</th>
+                            <th class="num">Owed</th>
                             <th>Invoice</th>
                             <th>Status</th>
-                            <th>Record payment</th>
                         </tr>
                         </thead>
                         <tbody>
                         @foreach ($settlements as $settlement)
                             <tr>
                                 <td>
-                                    <strong>{{ $settlement->user->name }}</strong><br>
-                                    <span class="small muted">{{ $settlement->user->email }}</span>
+                                    <div class="who__name">{{ $settlement->user->name }}</div>
+                                    <div class="who__meta">{{ $settlement->user->email }}</div>
                                 </td>
                                 <td>
-                                    {{ $settlement->sale->name }}<br>
-                                    <span class="small muted">ended {{ $settlement->sale->ends_at->format('j M Y') }}</span>
+                                    <div>{{ $settlement->sale->name }}</div>
+                                    <div class="who__meta">
+                                        ended {{ $settlement->sale->ends_at->format('j M Y') }}
+                                        · {{ $settlement->user->profile->commissionRatePercent() }} rate
+                                    </div>
                                 </td>
                                 <td class="num">{{ $settlement->units_sold }}</td>
                                 <td class="num">
                                     <strong>{{ \App\Support\Money::format($settlement->payout_amount, $settlement->currency) }}</strong>
                                 </td>
-                                <td>{{ $settlement->user->profile->commissionRatePercent() }}</td>
                                 <td>
                                     @if ($settlement->hasInvoice())
                                         <a href="{{ route('admin.settlements.invoice', $settlement) }}">
-                                            {{ Str::limit($settlement->invoice_original_name, 20) }}
+                                            {{ Str::limit($settlement->invoice_original_name, 24) }}
                                         </a>
                                     @elseif ($settlement->invoice_original_name)
-                                        <span class="small muted">{{ Str::limit($settlement->invoice_original_name, 20) }}</span>
+                                        <span class="muted small">{{ Str::limit($settlement->invoice_original_name, 24) }}</span>
                                     @else
-                                        <span class="small muted">—</span>
+                                        <span class="muted small">Not yet sent</span>
                                     @endif
                                 </td>
                                 <td>
                                     <span class="badge badge--{{ $settlement->isPaid() ? 'paid' : ($settlement->hasInvoice() ? 'invoiced' : 'awaiting') }}">
                                         {{ $settlement->stageLabel() }}
                                     </span>
-                                </td>
-                                <td>
                                     @if ($settlement->isPaid())
-                                        <span class="small muted">
+                                        <div class="who__meta">
                                             {{ \App\Support\Money::format($settlement->paid_amount, $settlement->currency) }}
                                             on {{ $settlement->paid_on?->format('j M Y') }}
-                                        </span>
-                                    @else
-                                        <form method="POST" action="{{ route('admin.settlements.pay', $settlement) }}"
-                                              class="row" style="gap: 6px; flex-wrap: nowrap;">
-                                            @csrf
-                                            <input type="number" step="0.01" min="0" name="paid_amount" class="input"
-                                                   style="width: 120px; padding: 6px 9px; font-size: 13px;"
-                                                   value="{{ number_format((float) $settlement->payout_amount, 2, '.', '') }}"
-                                                   required aria-label="Amount paid">
-                                            <input type="date" name="paid_on" class="input"
-                                                   style="width: 150px; padding: 6px 9px; font-size: 13px;"
-                                                   value="{{ now()->toDateString() }}"
-                                                   max="{{ now()->toDateString() }}"
-                                                   required aria-label="Date paid">
-                                            <input type="text" name="payment_reference" class="input"
-                                                   style="width: 130px; padding: 6px 9px; font-size: 13px;"
-                                                   placeholder="Reference" aria-label="Payment reference">
-                                            <button type="submit" class="btn btn--primary btn--sm">Mark paid</button>
-                                        </form>
+                                            @if ($settlement->payment_reference)
+                                                <br>{{ $settlement->payment_reference }}
+                                            @endif
+                                        </div>
                                     @endif
                                 </td>
                             </tr>
+
+                            {{--
+                                The payment form gets a full-width row of its own rather than being
+                                squeezed into a cell. Three inputs and a button will never fit
+                                inside a table column alongside seven other columns — that is what
+                                made this screen overlap before.
+                            --}}
+                            @unless ($settlement->isPaid())
+                                <tr class="form-row">
+                                    <td colspan="6">
+                                        <details class="payform">
+                                            <summary>Record a payment for {{ $settlement->user->firstName() }}</summary>
+                                            <form method="POST" action="{{ route('admin.settlements.pay', $settlement) }}">
+                                                @csrf
+                                                <div class="payform__body">
+                                                    <div class="field">
+                                                        <label for="amt-{{ $settlement->id }}">Amount paid ({{ $settlement->currency }})</label>
+                                                        <input id="amt-{{ $settlement->id }}" type="number" step="0.01" min="0"
+                                                               name="paid_amount" class="input" required
+                                                               value="{{ number_format((float) $settlement->payout_amount, 2, '.', '') }}">
+                                                    </div>
+                                                    <div class="field">
+                                                        <label for="on-{{ $settlement->id }}">Date paid</label>
+                                                        <input id="on-{{ $settlement->id }}" type="date" name="paid_on" class="input"
+                                                               required value="{{ now()->toDateString() }}"
+                                                               max="{{ now()->toDateString() }}">
+                                                    </div>
+                                                    <div class="field">
+                                                        <label for="ref-{{ $settlement->id }}">Reference <span class="muted">(optional)</span></label>
+                                                        <input id="ref-{{ $settlement->id }}" type="text" name="payment_reference"
+                                                               class="input" maxlength="120" placeholder="NEFT / UTR number">
+                                                    </div>
+                                                    <div class="payform__actions">
+                                                        <button type="submit" class="btn btn--primary">Mark as paid</button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </details>
+                                    </td>
+                                </tr>
+                            @endunless
                         @endforeach
                         </tbody>
                     </table>

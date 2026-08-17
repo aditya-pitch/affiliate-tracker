@@ -4,10 +4,26 @@
 
 @section('content')
 
+    @if ($viewingAsAdmin)
+        <div class="viewing-as">
+            <span class="viewing-as__badge">Internal view</span>
+            <span>
+                You are looking at <strong>{{ $creator->name }}</strong>’s dashboard exactly as they see it.
+                The report download and invoice upload are theirs to use, so they are disabled here.
+            </span>
+            <a class="btn btn--outline btn--sm" href="{{ route('admin.creators.show', $creator) }}">
+                Back to {{ $creator->firstName() }}
+            </a>
+        </div>
+    @endif
+
     {{-- Spec 5.1: pick a sale. Live is marked live, finished ones ended. --}}
     <nav class="sale-picker" aria-label="Choose a sale">
         @foreach ($sales as $option)
-            <a class="sale-tab" href="{{ route('sales.show', $option) }}"
+            <a class="sale-tab"
+               href="{{ $viewingAsAdmin
+                    ? route('admin.creators.dashboard', [$creator, $option])
+                    : route('sales.show', $option) }}"
                @if ($option->id === $sale->id) aria-current="page" @endif>
                 <span class="sale-tab__name">{{ $option->name }}</span>
                 <span class="sale-tab__meta">
@@ -33,9 +49,13 @@
         </div>
     </div>
 
+    {{-- The polling endpoint is scoped to the signed-in creator, so it is only
+         wired up when a creator is looking at their own dashboard. --}}
     <div class="stack"
-         data-live-url="{{ route('dashboard.live', $sale) }}"
-         data-poll-seconds="{{ $pollSeconds }}">
+         @unless ($viewingAsAdmin)
+             data-live-url="{{ route('dashboard.live', $sale) }}"
+             data-poll-seconds="{{ $pollSeconds }}"
+         @endunless>
 
         {{-- ---------------------------------------------------------------
              Summary (spec 5.2)
@@ -66,8 +86,8 @@
                         <div class="headline__stat-value tabular" data-refunded-value>{{ $summary->refundedOrders }}</div>
                     </div>
                     <div>
-                        <div class="headline__stat-label">Your rate</div>
-                        <div class="headline__stat-value tabular">{{ auth()->user()->profile->commissionRatePercent() }}</div>
+                        <div class="headline__stat-label">{{ $viewingAsAdmin ? 'Rate' : 'Your rate' }}</div>
+                        <div class="headline__stat-value tabular">{{ $creator->profile->commissionRatePercent() }}</div>
                     </div>
                 </div>
             </div>
@@ -88,7 +108,7 @@
         {{-- ---------------------------------------------------------------
              Settlement (spec 5.7) — only once the sale has ended
         ---------------------------------------------------------------- --}}
-        @if ($sale->hasEnded())
+        @if ($sale->hasEnded() && ! $viewingAsAdmin)
             <section class="card">
                 <div class="card__head">
                     <div>
@@ -203,8 +223,9 @@
                 <div>
                     <h2>Orders</h2>
                     <p class="small muted mb-0">
-                        <span data-total-orders>{{ $orders->total() }}</span> orders placed with your
-                        {{ auth()->user()->couponCodes->count() === 1 ? 'code' : 'codes' }} during this sale.
+                        <span data-total-orders>{{ $orders->total() }}</span> orders placed with
+                        {{ $viewingAsAdmin ? $creator->firstName().'’s' : 'your' }}
+                        {{ $creator->couponCodes->count() === 1 ? 'code' : 'codes' }} during this sale.
                     </p>
                 </div>
 

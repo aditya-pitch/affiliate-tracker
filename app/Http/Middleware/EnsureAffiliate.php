@@ -36,7 +36,7 @@ class EnsureAffiliate
         // An admin is a member of our team, not a creator: they have no coupon
         // codes and no dashboard of their own to look at.
         if (! $user->isAffiliate()) {
-            return redirect()->route('admin.settlements.index');
+            return redirect()->route('admin.overview.index');
         }
 
         return $next($request);

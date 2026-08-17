@@ -18,18 +18,29 @@
                 <a href="{{ route('dashboard') }}" aria-label="Pitch Innovations affiliate dashboard">
                     <img src="{{ asset('assets/img/logo.png') }}" alt="Pitch Innovations">
                 </a>
-                <span class="masthead__label">Affiliate Dashboard</span>
+                <span class="masthead__label">
+                    {{ auth()->user()?->isAdmin() ? 'Internal' : 'Affiliate Dashboard' }}
+                </span>
+
+                @if (auth()->user()?->isAdmin())
+                    <nav class="masthead__nav" aria-label="Internal sections">
+                        <a href="{{ route('admin.overview.index') }}"
+                           @class(['is-current' => request()->routeIs('admin.overview.*')])>Overview</a>
+                        <a href="{{ route('admin.creators.index') }}"
+                           @class(['is-current' => request()->routeIs('admin.creators.*')])>Creators</a>
+                        <a href="{{ route('admin.settlements.index') }}"
+                           @class(['is-current' => request()->routeIs('admin.settlements.*')])>Payments</a>
+                    </nav>
+                @endif
             </div>
 
             <div class="masthead__right">
                 @auth
                     <span class="masthead__who">{{ auth()->user()->firstName() }}</span>
 
-                    @if (auth()->user()->isAdmin())
-                        <a class="ghost" href="{{ route('admin.settlements.index') }}">Settlements</a>
-                    @else
+                    @unless (auth()->user()->isAdmin())
                         <a class="ghost" href="{{ route('settings') }}">Settings</a>
-                    @endif
+                    @endunless
 
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
