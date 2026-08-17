@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Setting a new creator up: account, profile, coupon codes, and the password
@@ -116,11 +117,26 @@ final class CreatorProvisioner
      * The password is only included when one has just been generated -- there
      * is no way to put it in a later email, because by then it is only a hash.
      */
-    public function sendWelcome(User $user, ?string $password = null): void
+    /**
+     * @return bool Whether it actually went out. The caller decides what to
+     *              tell the admin -- the account exists either way, so a mail
+     *              failure must not read as "creating the creator failed".
+     */
+    public function sendWelcome(User $user, ?string $password = null): bool
     {
         $user->loadMissing('profile', 'couponCodes');
 
-        Mail::to($user->email)->send(new CreatorWelcomeMail($user, $password));
+        try {
+            Mail::to($user->email)->send(new CreatorWelcomeMail($user, $password));
+        } catch (Throwable $e) {
+            Log::channel('audit')->error('Welcome email failed', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
 
         $user->forceFill(['welcome_sent_at' => Carbon::now()])->save();
 
@@ -129,6 +145,8 @@ final class CreatorProvisioner
             'included_password' => $password !== null,
             'by' => auth()->id(),
         ]);
+
+        return true;
     }
 
     public function addCode(User $user, string $code): CouponCode

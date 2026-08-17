@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\CouldNotSendLoginCode;
 use App\Mail\LoginCodeMail;
 use App\Models\LoginCode;
 use App\Models\User;
@@ -10,6 +11,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 /**
  * The emailed sign-in code (spec section 3, step 4).
@@ -28,8 +30,13 @@ final class OtpService
     /**
      * Issue a fresh code and email it. Any earlier unconsumed codes for this
      * user are invalidated, so only the most recent email will work.
+     *
+     * @param  bool  $deliver  False issues a code without emailing it, for the
+     *                         break-glass console command.
+     *
+     * @throws CouldNotSendLoginCode when the mail transport fails.
      */
-    public function issue(User $user, Request $request): LoginCode
+    public function issue(User $user, Request $request, bool $deliver = true): LoginCode
     {
         $this->invalidateOutstanding($user);
 
@@ -44,11 +51,41 @@ final class OtpService
             'user_agent' => substr((string) $request->userAgent(), 0, 500),
         ]);
 
-        Mail::to($user->email)->send(new LoginCodeMail($user, $code));
+        // Handed back so the console command can print it. Never returned to a
+        // browser, and never stored anywhere in this form.
+        $record->plainCode = $code;
+
+        if (! $deliver) {
+            return $record;
+        }
+
+        /*
+         | The one place a mail outage becomes a lockout. If the transport is
+         | down or misconfigured the code exists but nobody can read it, so the
+         | failure is logged loudly and turned into something the sign-in page
+         | can explain, rather than a 500 that leaves someone stranded halfway
+         | through signing in with no idea why.
+         */
+        try {
+            Mail::to($user->email)->send(new LoginCodeMail($user, $code));
+        } catch (Throwable $e) {
+            Log::channel('audit')->error('Sign-in code could not be emailed', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'mailer' => config('mail.default'),
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new CouldNotSendLoginCode(
+                'We could not send your sign-in code just now.',
+                previous: $e
+            );
+        }
 
         Log::channel('audit')->info('Sign-in code issued', [
             'user_id' => $user->id,
             'ip' => $request->ip(),
+            'mailer' => config('mail.default'),
         ]);
 
         return $record;

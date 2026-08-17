@@ -49,7 +49,44 @@ finishes.
 php artisan serve
 ```
 
-**5. Add the scheduler**
+**5. Set up mail — do not skip this**
+
+Sign-in requires a code sent by email, so if mail does not work, **nobody can
+log in at all**. Set the `MAIL_*` values in `.env` to real SMTP credentials,
+then prove it:
+
+```bash
+php artisan mail:verify
+```
+
+That prints the configuration it is actually using, sends a test message, and
+explains the likely cause if it fails. Run it after any change to mail settings.
+
+Set `ADMIN_EMAIL` to the address your team actually reads. It receives the admin
+sign-in codes and the operational updates (invoice uploaded, sale closed,
+payment recorded). To create or move the admin account:
+
+```bash
+php artisan affiliate:admin adityapahuja@pitchinnovations.com --dob=1990-01-01
+```
+
+Run with no arguments to sync it to `ADMIN_EMAIL`. It renames the existing admin
+rather than leaving a second one behind, and refuses to convert an address that
+already belongs to a creator.
+
+**If you ever get locked out** — mail breaks, or the admin address is changed to
+an inbox nobody can read yet — there is a way back in from the server:
+
+```bash
+php artisan affiliate:login-code adityapahuja@pitchinnovations.com
+```
+
+That issues a sign-in code and prints it to the console instead of emailing it.
+Complete the first three steps in the browser, then type in what it printed.
+Using it is recorded in the audit log. It needs shell access to the server,
+which is strictly more access than any account it could let you into.
+
+**6. Add the scheduler**
 
 One cron entry drives closing ended sales, digests and weekly summaries:
 
@@ -59,6 +96,23 @@ One cron entry drives closing ended sales, digests and weekly summaries:
 
 There is no frontend build step. The CSS and JS are plain files in `public/assets`,
 so there is no Node dependency and nothing to compile on deploy.
+
+### When email fails
+
+Mail is the one dependency that can stop this application dead, so failures are
+handled deliberately rather than left to bubble up:
+
+| If this fails to send | What happens |
+|:--|:--|
+| Sign-in code | The sign-in stays on the date-of-birth step with a message saying it is our problem, so they can retry once mail is fixed. Never a 500. |
+| New-order email | The order is still recorded. A courtesy email must never fail a sale. |
+| Sale-ended email | The other creators still get theirs, and the un-notified ones are retried on the next close-out run. |
+| Payment confirmation | The payment stays recorded. The money moved in the real world; the record has to agree. |
+| Invoice or admin alert | The invoice is still stored and the status still updates. |
+| Welcome email | The creator still exists, and the admin is told plainly that the email did not go — the password on screen is then the only copy. |
+
+Every one of these is logged to `storage/logs/audit.log`, and each has a test in
+`tests/Feature/MailResilienceTest.php` that forces the transport to throw.
 
 ---
 

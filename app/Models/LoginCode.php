@@ -8,6 +8,13 @@ use Illuminate\Support\Carbon;
 
 class LoginCode extends Model
 {
+    /**
+     * The code in the clear, set only on the instance returned by
+     * OtpService::issue() so the console command can print it. Never persisted,
+     * never serialised -- the column holds a hash.
+     */
+    public ?string $plainCode = null;
+
     protected $fillable = [
         'user_id',
         'code_hash',

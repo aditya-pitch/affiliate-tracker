@@ -128,7 +128,7 @@ class DemoDataSeeder extends Seeder
 
         $this->command?->newLine();
         $this->command?->info('Demo data seeded.');
-        $this->command?->line("  Admin      admin@pitchinnovations.com / {$password}");
+        $this->command?->line('  Admin      '.config('affiliate.admin.email')." / {$password}   (DOB 1990-01-01)");
         $this->command?->line("  Affiliate  aarav@example.com / {$password}   (DOB 1994-03-12, INR, 15%, two codes)");
         $this->command?->line("  Affiliate  ritika@example.com / {$password}  (DOB 1998-11-02, INR, 12.5%)");
         $this->command?->line("  Affiliate  marco@example.com / {$password}   (DOB 1991-07-25, USD, 20%)");
@@ -138,9 +138,11 @@ class DemoDataSeeder extends Seeder
 
     private function createAdmin(string $password): User
     {
+        // Taken from config so the seeded admin matches ADMIN_EMAIL, which is
+        // also where sign-in codes and operational updates are sent.
         return User::create([
-            'name' => 'Pitch Innovations Team',
-            'email' => 'admin@pitchinnovations.com',
+            'name' => (string) config('affiliate.admin.name'),
+            'email' => (string) config('affiliate.admin.email'),
             'password' => Hash::make($password),
             'date_of_birth' => '1990-01-01',
             'role' => User::ROLE_ADMIN,

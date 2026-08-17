@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Exceptions\CouldNotSendLoginCode;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\LoginFlow;
@@ -151,7 +152,18 @@ class LoginController extends Controller
 
         // Only now do we send anything to the creator's inbox -- an attacker
         // who does not have the password cannot use this to spam them.
-        $this->otp->issue($user, $request);
+        try {
+            $this->otp->issue($user, $request);
+        } catch (CouldNotSendLoginCode) {
+            // Mail is down or misconfigured. The flow stays where it is so they
+            // can simply try again once it is fixed, and the wording makes
+            // clear this is our problem rather than a wrong answer.
+            return back()->withErrors([
+                'login' => 'We could not email your sign-in code just now. Please try again in a moment — '
+                    .'if it keeps happening, contact support@pitchinnovations.com.',
+            ]);
+        }
+
         $this->flow->advanceToCode();
 
         return redirect()->route('login.code');
@@ -218,7 +230,14 @@ class LoginController extends Controller
             return back()->with('status', 'Hold on a moment before asking for another code.');
         }
 
-        $this->otp->issue($user, $request);
+        try {
+            $this->otp->issue($user, $request);
+        } catch (CouldNotSendLoginCode) {
+            return back()->withErrors([
+                'login' => 'We could not send that code. Please try again shortly, or contact '
+                    .'support@pitchinnovations.com if the problem continues.',
+            ]);
+        }
 
         return back()->with('status', 'A new code is on its way to your inbox.');
     }

@@ -6,7 +6,9 @@ use App\Mail\OrderPlacedMail;
 use App\Models\NotificationLogEntry;
 use App\Models\Order;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 /**
  * Spec section 6.1: "Coupon code sales -- email me every time someone buys with
@@ -46,14 +48,29 @@ class OrderObserver
             return;
         }
 
-        Mail::to($user->email)->send(new OrderPlacedMail($order));
+        /*
+         | This fires on order creation, so when the checkout integration is
+         | wired up (spec section 7) it will run inside whatever writes orders
+         | in. A mail outage must never fail an order — the sale happened, the
+         | commission is owed, and the dashboard will show it regardless of
+         | whether the courtesy email got out.
+         */
+        try {
+            Mail::to($user->email)->send(new OrderPlacedMail($order));
 
-        NotificationLogEntry::create([
-            'user_id' => $user->id,
-            'sale_id' => $order->sale_id,
-            'order_id' => $order->id,
-            'type' => NotificationLogEntry::TYPE_ORDER,
-            'sent_at' => Carbon::now(),
-        ]);
+            NotificationLogEntry::create([
+                'user_id' => $user->id,
+                'sale_id' => $order->sale_id,
+                'order_id' => $order->id,
+                'type' => NotificationLogEntry::TYPE_ORDER,
+                'sent_at' => Carbon::now(),
+            ]);
+        } catch (Throwable $e) {
+            Log::channel('audit')->error('New-order email failed', [
+                'user_id' => $user->id,
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

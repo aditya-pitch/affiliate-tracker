@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Throwable;
 
 /**
  * Everything that happens between a sale ending and a creator being paid
@@ -25,6 +26,7 @@ final class SettlementService
 {
     public function __construct(
         private readonly CommissionCalculator $calculator,
+        private readonly AdminNotifier $admin,
     ) {}
 
     /**
@@ -89,6 +91,7 @@ final class SettlementService
 
         if ($notify) {
             $this->sendSaleEndedEmails($sale);
+            $this->admin->saleClosed($sale, $created);
         }
 
         Log::channel('audit')->info('Sale closed out', [
@@ -147,6 +150,9 @@ final class SettlementService
             'user_id' => $settlement->user_id,
             'sale_id' => $settlement->sale_id,
         ]);
+
+        // Our team needs to know something is waiting on them.
+        $this->admin->invoiceUploaded($settlement);
     }
 
     /**
@@ -179,14 +185,30 @@ final class SettlementService
 
         $settlement->loadMissing('user.profile', 'sale');
 
-        Mail::to($settlement->user->email)->send(new PaymentConfirmationMail($settlement));
+        /*
+         | The payment is already recorded at this point. If the confirmation
+         | email fails, that is worth knowing about loudly, but it must not undo
+         | the payment or leave the admin staring at a 500 wondering whether it
+         | went through.
+         */
+        try {
+            Mail::to($settlement->user->email)->send(new PaymentConfirmationMail($settlement));
 
-        NotificationLogEntry::create([
-            'user_id' => $settlement->user_id,
-            'sale_id' => $settlement->sale_id,
-            'type' => NotificationLogEntry::TYPE_PAYMENT_CONFIRMED,
-            'sent_at' => Carbon::now(),
-        ]);
+            NotificationLogEntry::create([
+                'user_id' => $settlement->user_id,
+                'sale_id' => $settlement->sale_id,
+                'type' => NotificationLogEntry::TYPE_PAYMENT_CONFIRMED,
+                'sent_at' => Carbon::now(),
+            ]);
+        } catch (Throwable $e) {
+            Log::channel('audit')->error('Payment confirmation email failed', [
+                'settlement_id' => $settlement->id,
+                'user_id' => $settlement->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $this->admin->paymentRecorded($settlement);
 
         Log::channel('audit')->info('Commission marked paid', [
             'settlement_id' => $settlement->id,
@@ -236,14 +258,28 @@ final class SettlementService
                 continue;
             }
 
-            Mail::to($settlement->user->email)->send(new SaleEndedMail($settlement));
+            /*
+             | One creator's address bouncing must not stop the rest of the
+             | campaign being notified. The log entry is only written on
+             | success, so a later re-run picks up whoever was missed.
+             */
+            try {
+                Mail::to($settlement->user->email)->send(new SaleEndedMail($settlement));
 
-            NotificationLogEntry::create([
-                'user_id' => $settlement->user_id,
-                'sale_id' => $sale->id,
-                'type' => NotificationLogEntry::TYPE_SALE_ENDED,
-                'sent_at' => Carbon::now(),
-            ]);
+                NotificationLogEntry::create([
+                    'user_id' => $settlement->user_id,
+                    'sale_id' => $sale->id,
+                    'type' => NotificationLogEntry::TYPE_SALE_ENDED,
+                    'sent_at' => Carbon::now(),
+                ]);
+            } catch (Throwable $e) {
+                Log::channel('audit')->error('Sale-ended email failed', [
+                    'user_id' => $settlement->user_id,
+                    'email' => $settlement->user->email,
+                    'sale_id' => $sale->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 }

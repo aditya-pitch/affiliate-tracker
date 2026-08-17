@@ -44,6 +44,39 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Our team's address
+    |--------------------------------------------------------------------------
+    |
+    | The internal account: where the admin sign-in code goes, and where the
+    | operational updates below are sent. Set ADMIN_EMAIL in .env.
+    |
+    */
+
+    'admin' => [
+        'email' => env('ADMIN_EMAIL', 'adityapahuja@pitchinnovations.com'),
+        'name' => env('ADMIN_NAME', 'Pitch Innovations Team'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Operational updates to our team
+    |--------------------------------------------------------------------------
+    |
+    | Copies of the things our side needs to act on. These are separate from the
+    | creator notifications in spec section 6 -- a creator's switches have no
+    | bearing on whether we hear about an invoice landing.
+    |
+    */
+
+    'admin_alerts' => [
+        'enabled' => (bool) env('ADMIN_ALERTS_ENABLED', true),
+        'on_invoice_uploaded' => true,
+        'on_sale_closed' => true,
+        'on_payment_recorded' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Sign-in one-time code
     |--------------------------------------------------------------------------
     |

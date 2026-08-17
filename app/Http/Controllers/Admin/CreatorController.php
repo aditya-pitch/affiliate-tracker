@@ -71,11 +71,20 @@ class CreatorController extends Controller
         ['user' => $user, 'password' => $password] = $this->provisioner->create($data);
 
         if ($request->boolean('send_welcome')) {
-            $this->provisioner->sendWelcome($user, $password);
+            $sent = $this->provisioner->sendWelcome($user, $password);
+
+            // The account exists either way. If the email failed, say so
+            // plainly rather than claiming it was sent — the password below is
+            // then the only copy that exists.
+            $message = $sent
+                ? "{$user->name}'s dashboard is ready, and their login details have been emailed to {$user->email}."
+                : "{$user->name}'s dashboard is ready, but the email could not be sent. "
+                    .'Copy the password below and pass it on yourself, then check your mail settings '
+                    .'with: php artisan mail:verify';
 
             return redirect()
                 ->route('admin.creators.show', $user)
-                ->with('status', "{$user->name}'s dashboard is ready, and their login details have been emailed to {$user->email}.")
+                ->with('status', $message)
                 ->with('issued_password', $password);
         }
 
@@ -177,10 +186,13 @@ class CreatorController extends Controller
         $password = $this->provisioner->resetPassword($user);
 
         if ($request->boolean('send_email')) {
-            $this->provisioner->sendWelcome($user, $password);
+            $sent = $this->provisioner->sendWelcome($user, $password);
 
             return back()
-                ->with('status', "A new password has been issued and emailed to {$user->email}.")
+                ->with('status', $sent
+                    ? "A new password has been issued and emailed to {$user->email}."
+                    : 'A new password has been issued, but the email could not be sent. Copy it below — '
+                        .'it cannot be shown again.')
                 ->with('issued_password', $password);
         }
 
@@ -193,7 +205,13 @@ class CreatorController extends Controller
     {
         $this->assertCreator($user);
 
-        $this->provisioner->sendWelcome($user);
+        $sent = $this->provisioner->sendWelcome($user);
+
+        if (! $sent) {
+            return back()->withErrors([
+                'email' => 'That email could not be sent. Check your mail settings with: php artisan mail:verify',
+            ]);
+        }
 
         return back()->with(
             'status',
